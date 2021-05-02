@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 from dataset import TrainDatasetFromFolder
 from utils import remove_folder, load_checkpoint
 
+
 parser = argparse.ArgumentParser(
-    description="Super-Resolution training on single fundus image.")
+    description="Super-Resolution training on fundus imaging.")
 parser.add_argument("--dataset", type=str, metavar="N",
                     help="Folder with the dataset images.")
 parser.add_argument("--crop-size", type=int, default=200, metavar="N",
