@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+
+# Ignore local files
+/data/train/*
+/data/test/*
+/weight/*
+/output/*
+/test/*
