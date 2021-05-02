@@ -9,16 +9,12 @@ import torchvision.transforms as transforms
 
 from PIL import Image
 from models import Generator
-from utils import remove_folder, structural_sim
-from sewar.full_ref import mse, rmse, psnr, msssim
-
+from utils import remove_folder
 
 parser = argparse.ArgumentParser(
     description="Super-Resolution test on a single fundus image.")
-parser.add_argument("--lr-image", type=str, metavar="N",
+parser.add_argument("--image", type=str, metavar="N",
                     help="Low resolution image location.")
-parser.add_argument("--hr-image", type=str, metavar="N",
-                    help="High resolution image location.")
 parser.add_argument("--model", type=str, metavar="N",
                     help="Location of the trained model.")
 parser.add_argument("--upscale-factor", type=int, default=2, metavar="N",
@@ -46,55 +42,14 @@ model.load_state_dict(checkpoint["model"])
 # Set the model to eval mode
 model.eval()
 
-# Reference sources from 'https://github.com/richzhang/PerceptualSimilarity'
-lpips_loss = lpips.LPIPS(net="vgg").to(device)
-
-# Algorithm performance
-mse_value = 0
-rmse_value = 0
-psnr_value = 0
-ssim_value = 0
-l_value = 0
-c_value = 0
-s_value = 0
-ms_ssim_value = 0
-lpips_value = 0
-
-# Start evaluate model performance
-lr = Image.open(opt.lr_image)
-hr = Image.open(opt.hr_image)
+# Load image
+lr = Image.open(opt.image)
 lr = transforms.ToTensor()(lr).unsqueeze(0)
-hr = transforms.ToTensor()(hr).unsqueeze(0)
 lr = lr.to(device)
-hr = hr.to(device)
 
+# Start model performance
 with torch.no_grad():
     sr = model(lr)
 
+# Save result
 utils.save_image(sr, os.path.join("test", "test_sr.bmp"))
-
-dst_img = cv2.imread(opt.hr_image)
-src_img = cv2.imread(os.path.join("test", "test_sr.bmp"))
-
-mse_value = mse(src_img, dst_img)
-rmse_value = rmse(src_img, dst_img)
-psnr_value = psnr(src_img, dst_img)
-l_map, c_map, s_map = structural_sim(
-    src_img, dst_img, win_size=11, multichannel=True, gaussian_weights=True)
-ssim_value = np.mean(l_map * c_map * s_map)
-l_value = np.mean(l_map)
-c_value = np.mean(c_map)
-s_value = np.mean(s_map)
-ms_ssim_value = msssim(src_img, dst_img).real
-lpips_value = lpips_loss(sr, hr).item()
-
-print("\n=== Performance summary ===\n" +
-      "MSE: {:.4f}\n".format(mse_value) +
-      "RMSE: {:.4f}\n".format(rmse_value) +
-      "PSNR: {:.4f}\n".format(psnr_value) +
-      "SSIM: {:.4f}\n".format(ssim_value) +
-      "SSIM Luminance: {:.4f}".format(l_value) +
-      "SSIM Contrast: {:.4f}".format(c_value) +
-      "SSIM Structural: {:.4f}".format(s_value) +
-      "MS-SSIM: {:.4f}\n".format(ms_ssim_value) +
-      "LPIPS: {:.4f}".format(lpips_value))
