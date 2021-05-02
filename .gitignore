@@ -133,5 +133,7 @@ dmypy.json
 .vscode/
 
 # Ignore local files
-/data/train
-/data/test
+/data/train/*
+/data/test/*
+/weight/*
+/output/*
