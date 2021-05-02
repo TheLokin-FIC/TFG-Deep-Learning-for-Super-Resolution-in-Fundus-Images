@@ -1,6 +1,7 @@
 import os
 import cv2
 import csv
+import math
 import lpips
 import torch
 import argparse
@@ -17,7 +18,7 @@ from sewar.full_ref import mse, rmse, psnr, msssim
 
 
 parser = argparse.ArgumentParser(
-    description="Super-Resolution test benchmark on fundus imaging.")
+    description="Super-Resolution test comparing two upscale factors in fundus imaging.")
 parser.add_argument("--dataset", type=str, metavar="N",
                     help="Folder with the dataset images.")
 parser.add_argument("--model", type=str, metavar="N",
@@ -26,9 +27,12 @@ parser.add_argument("--crop-size", type=int, default=200, metavar="N",
                     help="Crop size for the training images (default: 200).")
 parser.add_argument("--upscale-factor", type=int, default=2, metavar="N",
                     help="Low to high resolution scaling factor (default: 2).")
+parser.add_argument("--upscale-factor-compare", type=int, default=4, metavar="N",
+                    help="Low to high resolution scaling factor to compare (default: 4).")
 opt = parser.parse_args()
 
-target_size = opt.crop_size * opt.upscale_factor
+target_size = opt.crop_size * opt.upscale_factor_compare
+upscales = int(math.log(opt.upscale_factor_compare, opt.upscale_factor))
 
 # Create the necessary folders
 if os.path.exists("test"):
@@ -44,7 +48,8 @@ else:
     device = "cuda:0"
 
 # Load dataset
-dataset = TestDatasetFromFolder(opt.dataset, target_size, opt.upscale_factor)
+dataset = TestDatasetFromFolder(
+    opt.dataset, target_size, opt.upscale_factor_compare)
 dataloader = DataLoader(dataset, pin_memory=True)
 
 # Construct network architecture model of generator
@@ -76,7 +81,9 @@ for i, (input, target) in progress_bar:
     hr = target.to(device)
 
     with torch.no_grad():
-        sr = model(lr)
+        sr = lr
+        for _ in range(upscales):
+            sr = model(sr)
 
     utils.save_image(lr, os.path.join(
         "test", "test_" + str(i + 1) + "_lr.bmp"))
@@ -90,7 +97,7 @@ for i, (input, target) in progress_bar:
     dst_img = cv2.imread(os.path.join(
         "test", "test_" + str(i + 1) + "_hr.bmp"))
     src_img = cv2.imread(os.path.join(
-        "test",  "test_" + str(i + 1) + "_sr.bmp"))
+        "test", "test_" + str(i + 1) + "_sr.bmp"))
 
     mse_value = mse(src_img, dst_img)
     rmse_value = rmse(src_img, dst_img)
@@ -114,8 +121,12 @@ for i, (input, target) in progress_bar:
     total_ms_ssim_value[0] += ms_ssim_value.real
     total_lpips_value[0] += lpips_value.item()
 
-    src_img = cv2.resize(lr_img, (target_size, target_size),
-                         interpolation=cv2.INTER_NEAREST)
+    src_img = lr_img
+    size = opt.crop_size * opt.upscale_factor
+    for _ in range(upscales):
+        src_img = cv2.resize(src_img, (size, size),
+                             interpolation=cv2.INTER_NEAREST)
+        size *= opt.upscale_factor
 
     cv2.imwrite(os.path.join("test", "test_" +
                              str(i + 1) + "_nn.bmp"), src_img)
@@ -145,8 +156,12 @@ for i, (input, target) in progress_bar:
     total_ms_ssim_value[1] += ms_ssim_value.real
     total_lpips_value[1] += lpips_value.item()
 
-    src_img = cv2.resize(lr_img, (target_size, target_size),
-                         interpolation=cv2.INTER_LINEAR)
+    src_img = lr_img
+    size = opt.crop_size * opt.upscale_factor
+    for _ in range(upscales):
+        src_img = cv2.resize(src_img, (size, size),
+                             interpolation=cv2.INTER_LINEAR)
+        size *= opt.upscale_factor
 
     cv2.imwrite(os.path.join("test", "test_" +
                              str(i + 1) + "_bl.bmp"), src_img)
@@ -176,8 +191,12 @@ for i, (input, target) in progress_bar:
     total_ms_ssim_value[2] += ms_ssim_value.real
     total_lpips_value[2] += lpips_value.item()
 
-    src_img = cv2.resize(lr_img, (target_size, target_size),
-                         interpolation=cv2.INTER_CUBIC)
+    src_img = lr_img
+    size = opt.crop_size * opt.upscale_factor
+    for _ in range(upscales):
+        src_img = cv2.resize(src_img, (size, size),
+                             interpolation=cv2.INTER_CUBIC)
+        size *= opt.upscale_factor
 
     cv2.imwrite(os.path.join("test", "test_" +
                              str(i + 1) + "_bc.bmp"), src_img)
@@ -302,4 +321,4 @@ with open(os.path.join("test", "results.csv"), "a+") as file:
     writer.writerow(["Avg MS-SSIM", "{:.4f}".format(avg_ms_ssim_value)])
     writer.writerow(["Avg LPIPS", "{:.4f}".format(avg_lpips_value)])
 
-print("[*] Test - Benchmark done!")
+print("[*] Test - Compare done!")

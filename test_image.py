@@ -53,3 +53,5 @@ with torch.no_grad():
 
 # Save result
 utils.save_image(sr, os.path.join("test", "test_sr.bmp"))
+
+print("[*] Test - Single image done!")
