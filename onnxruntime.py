@@ -8,7 +8,7 @@ from models import Generator
 
 
 parser = argparse.ArgumentParser(
-    description="Converting a Super-Resolution model in Pytorch to ONNX Runtime.")
+    description="Convert a Super-Resolution model in Pytorch to ONNX Runtime.")
 parser.add_argument("--model", type=str, metavar="N",
                     help="Location of the trained model.")
 parser.add_argument("--upscale-factor", type=int, metavar="N",
@@ -32,10 +32,9 @@ model.load_state_dict(checkpoint["model"])
 # Set the model to eval mode
 model.eval()
 
-# Input to the model
-x = torch.randn(1, 3, 100, 100, requires_grad=True)
-x = x.to(device)
-torch_out = model(x)
+# Dummy input to the model
+dummy_input = torch.randn(1, 3, 100, 100, requires_grad=True)
+dummy_input = dummy_input.to(device)
 
 # Export the model with:
 # - model being run
@@ -47,8 +46,8 @@ torch_out = model(x)
 # - the model's input names
 # - the model's output names
 # - variable lenght axes
-torch.onnx.export(model, x, os.path.join(opt.output, "super_resolution_" + str(opt.upscale_factor) + "x.onnx"), export_params=True, opset_version=10, do_constant_folding=True, input_names=[
-                  'input'], output_names=['output'], dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
+torch.onnx.export(model, dummy_input, os.path.join(opt.output, "super_resolution_" + str(opt.upscale_factor) + "x.onnx"), export_params=True, opset_version=11,
+                  do_constant_folding=True, input_names=["input"], output_names=["output"], dynamic_axes={"input": {2: "height", 3: "width"}, "output": {2: "height", 3: "width"}})
 
 # Check ONNX Runtime model
 onnx_model = onnx.load(os.path.join(
