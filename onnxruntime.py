@@ -2,7 +2,6 @@ import os
 import onnx
 import argparse
 import torch.onnx
-import numpy as np
 
 from models import Generator
 

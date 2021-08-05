@@ -1,6 +1,5 @@
 import os
 import cv2
-import random
 import argparse
 
 from tqdm import tqdm

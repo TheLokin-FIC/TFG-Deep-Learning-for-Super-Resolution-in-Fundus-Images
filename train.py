@@ -1,5 +1,4 @@
 import os
-import sys
 import csv
 import torch
 import argparse
@@ -10,10 +9,10 @@ import torchvision.utils as utils
 
 from tqdm import tqdm
 from loss import ContentLoss
+from utils import load_checkpoint
 from torch.utils.data import DataLoader
 from dataset import TrainDatasetFromFolder
 from models import Generator, Discriminator
-from utils import remove_folder, load_checkpoint
 
 
 parser = argparse.ArgumentParser(

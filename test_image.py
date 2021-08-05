@@ -1,9 +1,6 @@
 import os
-import cv2
-import lpips
 import torch
 import argparse
-import numpy as np
 import torchvision.utils as utils
 import torchvision.transforms as transforms
 
